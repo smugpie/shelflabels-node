@@ -1,0 +1,104 @@
+import { logs } from "../state/logs.svelte.js";
+import {
+  commandCharacteristic,
+  imageCharacteristic,
+  reconnect,
+} from "./connection.js";
+import delayPromise from "./delayPromise.js";
+import { hexToBytes, intToHex } from "./conversion.js";
+
+let imgArray = "";
+let uploadPart = 0;
+let oldPart = "";
+let imagePartSize;
+
+export async function sendCommand(cmdTXT) {
+  let cmd = hexToBytes(cmdTXT);
+  logs.addLog("Sending command: " + cmdTXT);
+  await sendCommandAsBytes(cmd, commandCharacteristic);
+}
+
+export function sendImage(pixelData) {
+  imgArray = pixelData.replace(/(?:\r\n|\r|\n|,|0x| )/g, "");
+  uploadPart = 0;
+  logs.addLog("Sending image...");
+  sendCommand("01");
+}
+
+export async function sendCommandAsBytes(cmd, characteristic) {
+  if (characteristic) {
+    try {
+      await characteristic.writeValue(cmd);
+    } catch {
+      logs.addLog("DOMException: GATT operation already in progress.");
+      return Promise.resolve()
+        .then(() => delayPromise(500))
+        .then(() => {
+          characteristic.writeValue(cmd);
+        });
+    }
+  }
+}
+
+export function handleImageRequest(data) {
+  const imagePartMessageSize = new DataView(hexToBytes(data).buffer).getUint16(
+    1,
+    true,
+  );
+
+  switch (data.substring(0, 2)) {
+    case "01":
+      // Read image part message size from response bytes 2 & 3 as uint16le
+      // Typically, this will be 0xf400 = 244d
+      console.log(
+        `Display requested image part message size ${imagePartMessageSize}`,
+      );
+
+      // Image part size will be four bytes less than the message size
+      // to account for the 4 byte uint32le part number starting each message
+      imagePartSize = imagePartMessageSize - 4;
+
+      sendCommand("02" + intToHex(imgArray.length / 2) + "000000");
+      break;
+
+    case "02":
+      logs.addLog("Sending now stage 3");
+      sendCommand("03");
+      break;
+
+    case "05":
+      if (data.substring(2, 4) === "08") {
+        logs.addLog("Image upload done, refreshing and reconecting now");
+        reconnect(5000);
+      } else if (data.substring(2, 4) !== "00") {
+        logs.addLog("Something wrong in the upload flow, aborting!!!");
+      } else {
+        console.log("Image portion requested: " + data.substring(4, 12));
+        sendImagePortion(data.substring(4, 12));
+      }
+      break;
+  }
+}
+
+function sendImagePortion(partAcked) {
+  if (imgArray.length > 0) {
+    let currentpart = oldPart;
+    logs.addLog(
+      "PartACK: " + partAcked + " PartUpload: " + intToHex(uploadPart),
+    );
+    if (partAcked == intToHex(uploadPart)) {
+      currentpart =
+        intToHex(uploadPart) + imgArray.substring(0, imagePartSize * 2);
+      oldPart = currentpart;
+      imgArray = imgArray.substring(imagePartSize * 2);
+      logs.addLog("Current part: " + uploadPart);
+      uploadPart++;
+    } else {
+      logs.addLog("Resending last part because of error");
+    }
+    logs.addLog("Curr Part: " + currentpart);
+    sendCommandAsBytes(hexToBytes(currentpart), imageCharacteristic);
+  } else {
+    logs.addLog("Img upload done");
+  }
+}
