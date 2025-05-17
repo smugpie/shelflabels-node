@@ -1,5 +1,5 @@
 import { loadImage } from "canvas";
-import { connect } from "./utils/connection.js";
+import { connectAndSendImage } from "./utils/connection.js";
 import { createNewCanvas, addImage, addText } from "./utils/drawing.js";
 import { applyDitheringToCanvas } from "./utils/dithering.js";
 
@@ -21,5 +21,6 @@ async function prepareAndSendImage() {
 
 (async function () {
   console.log("Initialising...");
-  await connect(prepareAndSendImage);
+  const ctx = await prepareAndSendImage();
+  await connectAndSendImage(ctx);
 })();

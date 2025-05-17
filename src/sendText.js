@@ -1,8 +1,8 @@
-import { connect } from "./utils/connection.js";
+import { connectAndSendImage } from "./utils/connection.js";
 import { createNewCanvas, addText } from "./utils/drawing.js";
 import { applyDitheringToCanvas } from "./utils/dithering.js";
 
-async function prepareAndSendImage() {
+function prepareImage() {
   const ctx = createNewCanvas();
   addText(ctx, {
     body: "The quick brown fox",
@@ -32,5 +32,6 @@ async function prepareAndSendImage() {
 
 (async function () {
   console.log("Initialising...");
-  await connect(prepareAndSendImage);
+  const ctx = prepareImage();
+  await connectAndSendImage(ctx);
 })();

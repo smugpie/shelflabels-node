@@ -17,21 +17,19 @@ export async function sendCommand(cmdTXT) {
   await sendCommandAsBytes(cmd, commandCharacteristic);
 }
 
-export function sendImage(pixelData) {
+export async function sendImage(pixelData) {
   imgArray = pixelData.replace(/(?:\r\n|\r|\n|,|0x| )/g, "");
   uploadPart = 0;
   console.log("Sending image...");
-  sendCommand("01");
+  await sendCommand("01");
 }
 
 export async function sendCommandAsBytes(cmd, characteristic) {
   if (characteristic) {
     try {
       await characteristic.write(cmd, false);
-      console.log("Command sent: " + cmd);
     } catch (e) {
       console.log("Error sending command: " + e);
-      console.log("DOMException: GATT operation already in progress.");
       return Promise.resolve()
         .then(() => delayPromise(500))
         .then(async () => {

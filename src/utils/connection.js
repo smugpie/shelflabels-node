@@ -4,12 +4,14 @@ import { bytesToHex } from "./conversion.js";
 import { handleImageRequest } from "./commands.js";
 import { getPixelDataFromCanvas } from "./pixels.js";
 import { sendImage } from "./commands.js";
+import delayPromise from "./delayPromise.js";
 
 var bleDevice;
 export var commandCharacteristic = null;
 export var imageCharacteristic = null;
 
 export function handleNotify(data) {
+  console.log("Notification received");
   console.log("Got bytes: " + bytesToHex(data.buffer));
   setTimeout(function () {
     handleImageRequest(bytesToHex(data.buffer));
@@ -22,11 +24,14 @@ async function setupCharacteristics(peripheral) {
       ["fef0"],
       ["fef2", "fef1"]
     );
+  commandCharacteristic = characteristics.find((c) => c.uuid === "fef1");
+  imageCharacteristic = characteristics.find((c) => c.uuid === "fef2");
   console.log("Services and characteristics found");
-  commandCharacteristic = characteristics[0];
-  commandCharacteristic.subscribe();
+  await commandCharacteristic.subscribe();
   commandCharacteristic.on("data", handleNotify);
-  imageCharacteristic = characteristics[1];
+  commandCharacteristic.on("error", (e) => {
+    console.log("Error in command characteristic: " + e);
+  });
 }
 
 export async function disconnect() {
@@ -35,7 +40,7 @@ export async function disconnect() {
   process.exit(0);
 }
 
-export const connect = function (canvasInstructions) {
+export const connectAndSendImage = function (ctx) {
   noble.on("stateChange", async (state) => {
     if (state === "poweredOn") {
       console.log("BLE powered on, starting scan...");
@@ -58,9 +63,13 @@ export const connect = function (canvasInstructions) {
         bleDevice = peripheral;
         await peripheral.connectAsync();
         await setupCharacteristics(peripheral);
-        const ctx = await canvasInstructions();
-        const pixelData = getPixelDataFromCanvas(ctx);
-        await sendImage(pixelData);
+
+        const pixelData = await getPixelDataFromCanvas(ctx);
+        // TODO wait for an event to send the image
+        // instead of an arbitrary timeout
+        setTimeout(() => {
+          sendImage(pixelData);
+        }, 3000);
       }
     } catch (err) {
       console.log("Error:", err);
