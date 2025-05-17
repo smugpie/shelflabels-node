@@ -17,6 +17,29 @@ export function handleNotify(data) {
   }, 50);
 }
 
+async function setupCharacteristics(peripheral) {
+  const { characteristics } =
+    await peripheral.discoverSomeServicesAndCharacteristicsAsync(
+      ["fef0"],
+      ["fef2", "fef1"]
+    );
+  console.log("Servicea and characteristics found");
+  commandCharacteristic = characteristics[0];
+  commandCharacteristic.subscribe();
+  commandCharacteristic.on("data", handleNotify);
+  commandCharacteristic.on("error", (err) => {
+    console.log("Error in command characteristic:", err);
+  });
+  imageCharacteristic = characteristics[1];
+}
+
+async function prepareAndSendImage() {
+  const ctx = createNewCanvas();
+  await decorateCanvas(ctx);
+  const pixelData = getPixelDataFromCanvas(ctx);
+  await sendImage(pixelData);
+}
+
 export async function disconnect() {
   await commandCharacteristic.unsubscribe();
   await bleDevice.disconnectAsync();
@@ -45,24 +68,8 @@ export const connect = function () {
         await noble.stopScanningAsync();
         bleDevice = peripheral;
         await peripheral.connectAsync();
-        const { characteristics } =
-          await peripheral.discoverSomeServicesAndCharacteristicsAsync(
-            ["fef0"],
-            ["fef2", "fef1"]
-          );
-        console.log("Servicea and characteristics found");
-        commandCharacteristic = characteristics[0];
-        commandCharacteristic.subscribe();
-        commandCharacteristic.on("data", handleNotify);
-        commandCharacteristic.on("error", (err) => {
-          console.log("Error in command characteristic:", err);
-        });
-        imageCharacteristic = characteristics[1];
-
-        const ctx = createNewCanvas();
-        await decorateCanvas(ctx);
-        const pixelData = getPixelDataFromCanvas(ctx);
-        await sendImage(pixelData);
+        await setupCharacteristics(peripheral);
+        await prepareAndSendImage();
       }
     } catch (err) {
       console.log("Error:", err);
