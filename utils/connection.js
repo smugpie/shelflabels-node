@@ -1,13 +1,14 @@
-import { logs } from "../state/logs.svelte.js";
 import { bytesToHex } from "./conversion.js";
 import { handleImageRequest } from "./commands.js";
 
-let reconnectAttempts = 0;
-let gattServer;
-let bleDevice;
-let bleService;
-export let commandCharacteristic = null;
-export let imageCharacteristic = null;
+import noble from "@abandonware/noble";
+
+var reconnectAttempts = 0;
+var gattServer;
+var bleDevice;
+var bleService;
+export var commandCharacteristic = null;
+export var imageCharacteristic = null;
 
 const resetVariables = function () {
   if (bleDevice) {
@@ -21,7 +22,7 @@ const resetVariables = function () {
 
 export function disconnect() {
   resetVariables();
-  logs.addLog("Disconnected.");
+  console.log("Disconnected.");
   dispatchEvent(new CustomEvent("bleDisconnected"));
 }
 
@@ -62,7 +63,7 @@ const handleError = function (error) {
     reconnectAttempts++;
     connect();
   } else {
-    logs.addLog("Was not able to connect, aborting");
+    console.log("Was not able to connect, aborting");
     reconnectAttempts = 0;
   }
 };
@@ -70,24 +71,25 @@ const handleError = function (error) {
 export const reconnect = async function (delay = 1000) {
   disconnectDevice();
   resetVariables();
-  logs.addLog("Reconnecting...");
+  console.log("Reconnecting...");
   setTimeout(async function () {
     await connect();
   }, delay);
 };
 
+/*
 export const connect = async function () {
   if (!commandCharacteristic) {
-    logs.addLog("Connecting to: " + bleDevice.name);
+    console.log("Connecting to: " + bleDevice.name);
     try {
       gattServer = await bleDevice.gatt.connect();
-      logs.addLog("Found GATT server");
+      console.log("Found GATT server");
       bleService = await gattServer.getPrimaryService(0xfef0);
-      logs.addLog("Found service");
+      console.log("Found service");
       imageCharacteristic = await bleService.getCharacteristic(0xfef2);
-      logs.addLog("Found image characteristic");
+      console.log("Found image characteristic");
       commandCharacteristic = await bleService.getCharacteristic(0xfef1);
-      logs.addLog("Found command characteristic");
+      console.log("Found command characteristic");
       dispatchEvent(new CustomEvent("bleConnected"));
       await commandCharacteristic.startNotifications();
       commandCharacteristic.addEventListener(
@@ -98,12 +100,46 @@ export const connect = async function () {
       handleError(err);
     }
   }
-};
+}; */
 
 export function handleNotify(event) {
   const data = event.target.value;
-  logs.addLog("Got bytes: " + bytesToHex(data.buffer));
+  console.log("Got bytes: " + bytesToHex(data.buffer));
   setTimeout(function () {
     handleImageRequest(bytesToHex(data.buffer));
   }, 50);
 }
+
+export const connect = function() {
+  noble.on("stateChange", async (state) => {
+  if (state === "poweredOn") {
+    console.log("BLE powered on, starting scan...");
+    await noble.startScanningAsync(["fef0"], false);
+  }
+});
+
+  noble.on("discover", async (peripheral) => {
+    try {
+      console.log(
+        `Discovered peripheral: ${peripheral.address} (${peripheral.advertisement.localName})`
+      );
+
+      if (["PICKSMART"].includes(peripheral.advertisement.localName)) {
+        console.log("Found tag, stopping scan...");
+        await noble.stopScanningAsync();
+        await peripheral.connectAsync();
+        const {services, characteristics} = await peripheral.discoverSomeServicesAndCharacteristicsAsync(['fef0'],['fef2','fef1'])
+        console.log("Service found", services, characteristics)
+        bleService = services[0]
+        commandCharacteristic = characteristics[0]
+        imageCharacteristic = characteristics[1]
+      }
+    } catch (err) {
+      console.log("Error:", err);
+      await peripheral.disconnectAsync();
+      process.exit(0);
+    }
+  });
+}
+
+

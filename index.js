@@ -1,52 +1,44 @@
-const noble = require("@abandonware/noble");
+import fs from 'fs';
+import { connect } from './utils/connection.js';
+import { createCanvas, loadImage } from 'canvas';
+import { addImage, addText } from './utils/drawing.js';
+import { applyDitheringToCanvas } from './utils/dithering.js';
 
+
+  async function decorateCanvas(ctx) {
+   const text = {
+    body: "hello",
+    size: 20,
+    color: "black",
+    x: 100,
+    y: 100
+   };
+   const image = await loadImage('./images/img.jpg')
+    addImage(ctx, image);
+    addText(ctx, text);
+      applyDitheringToCanvas(ctx);
+  };
+
+  function createNewCanvas() {
+    const width = 296;
+    const height = 128;
+    const canvas = createCanvas(width, height);
+    var ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, width, height);
+    ctx.fillStyle = "white";
+    ctx.fillRect(0, 0, width,  height);
+    return ctx;
+  }
+
+
+(async function () {
+console.log("Preparing image...");
+  const ctx = createNewCanvas();
+  await decorateCanvas(ctx)
 console.log("Initialising...");
+  await connect();
 
-noble.on("stateChange", async (state) => {
-  if (state === "poweredOn") {
-    console.log("BLE powered on, starting scan...");
-    await noble.startScanningAsync(["fef0"], false);
-  }
-});
+  const buffer = ctx.canvas.toBuffer("image/png");
+  fs.writeFileSync("./image.png", buffer);
+})()
 
-noble.on("discover", async (peripheral) => {
-  try {
-    console.log(
-      `Discovered peripheral: ${peripheral.address} (${peripheral.advertisement.localName})`
-    );
-
-    if (["PICKSMART"].includes(peripheral.advertisement.localName)) {
-      console.log(
-        peripheral,
-        peripheral.advertisement.manufacturerData.toString("utf-8")
-      );
-      console.log("Found tag, stopping scan...");
-      await noble.stopScanningAsync();
-      await peripheral.connectAsync();
-      const { services, characteristics } =
-        await peripheral.discoverAllServicesAndCharacteristicsAsync();
-      //const characteristics = await peripheral.discoverCharacteristicsAsync();
-      console.log(services, characteristics);
-      const characteristic0 = await characteristics[0].readAsync();
-      const characteristic1 = await characteristics[1].readAsync();
-      const characteristic2 = await characteristics[2].readAsync();
-      const characteristic3 = await characteristics[3].readAsync();
-
-      console.log("Characteristic 0:", characteristic0);
-      console.log("Characteristic 1:", characteristic1);
-      console.log("Characteristic 2:", characteristic2.toString("utf8"));
-      console.log("Characteristic 3:", characteristic3);
-
-      console.log(
-        `${peripheral.address} (${peripheral.advertisement.localName})`
-      );
-
-      await peripheral.disconnectAsync();
-      process.exit(0);
-    }
-  } catch (err) {
-    console.log("Error:", err);
-    await peripheral.disconnectAsync();
-    process.exit(0);
-  }
-});

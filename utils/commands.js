@@ -1,4 +1,3 @@
-import { logs } from "../state/logs.svelte.js";
 import {
   commandCharacteristic,
   imageCharacteristic,
@@ -14,14 +13,14 @@ let imagePartSize;
 
 export async function sendCommand(cmdTXT) {
   let cmd = hexToBytes(cmdTXT);
-  logs.addLog("Sending command: " + cmdTXT);
+  console.log("Sending command: " + cmdTXT);
   await sendCommandAsBytes(cmd, commandCharacteristic);
 }
 
 export function sendImage(pixelData) {
   imgArray = pixelData.replace(/(?:\r\n|\r|\n|,|0x| )/g, "");
   uploadPart = 0;
-  logs.addLog("Sending image...");
+  console.log("Sending image...");
   sendCommand("01");
 }
 
@@ -30,7 +29,7 @@ export async function sendCommandAsBytes(cmd, characteristic) {
     try {
       await characteristic.writeValue(cmd);
     } catch {
-      logs.addLog("DOMException: GATT operation already in progress.");
+      console.log("DOMException: GATT operation already in progress.");
       return Promise.resolve()
         .then(() => delayPromise(500))
         .then(() => {
@@ -62,16 +61,16 @@ export function handleImageRequest(data) {
       break;
 
     case "02":
-      logs.addLog("Sending now stage 3");
+      console.log("Sending now stage 3");
       sendCommand("03");
       break;
 
     case "05":
       if (data.substring(2, 4) === "08") {
-        logs.addLog("Image upload done, refreshing and reconecting now");
+        console.log("Image upload done, refreshing and reconecting now");
         reconnect(5000);
       } else if (data.substring(2, 4) !== "00") {
-        logs.addLog("Something wrong in the upload flow, aborting!!!");
+        console.log("Something wrong in the upload flow, aborting!!!");
       } else {
         console.log("Image portion requested: " + data.substring(4, 12));
         sendImagePortion(data.substring(4, 12));
@@ -83,7 +82,7 @@ export function handleImageRequest(data) {
 function sendImagePortion(partAcked) {
   if (imgArray.length > 0) {
     let currentpart = oldPart;
-    logs.addLog(
+    console.log(
       "PartACK: " + partAcked + " PartUpload: " + intToHex(uploadPart),
     );
     if (partAcked == intToHex(uploadPart)) {
@@ -91,14 +90,14 @@ function sendImagePortion(partAcked) {
         intToHex(uploadPart) + imgArray.substring(0, imagePartSize * 2);
       oldPart = currentpart;
       imgArray = imgArray.substring(imagePartSize * 2);
-      logs.addLog("Current part: " + uploadPart);
+      console.log("Current part: " + uploadPart);
       uploadPart++;
     } else {
-      logs.addLog("Resending last part because of error");
+      console.log("Resending last part because of error");
     }
-    logs.addLog("Curr Part: " + currentpart);
+    console.log("Curr Part: " + currentpart);
     sendCommandAsBytes(hexToBytes(currentpart), imageCharacteristic);
   } else {
-    logs.addLog("Img upload done");
+    console.log("Img upload done");
   }
 }
