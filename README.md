@@ -50,6 +50,14 @@ For text only, you can use this:
 DEVICE_NAME=<your_device_name> node src/sendTextAndImage.js
 ```
 
+To retrieve data from an API and display it, you can use this example which displays the current temperature:
+
+```sh
+DEVICE_NAME=<your_device_name> node src/sendWeather.js
+```
+
+(You'll need to update your latitude and longitude in the config, unless you're particularly interested in Lisburn, County Antrim.)
+
 I might add more examples to get data from third party services if I'm feeling generous.
 
 The `DEVICE_NAME` will be something like `PICKSMART` or `NEMR<bunch of numbers>` so look out for those when you're performing the scan.

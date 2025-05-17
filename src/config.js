@@ -8,3 +8,8 @@ export const config = {
   hasSecondColor: true,
   isMirrored: false,
 };
+
+export const weatherConfig = {
+  lat: 54.5234,
+  lon: -6.0353,
+};

@@ -42,13 +42,13 @@ export const addImage = function (ctx, image) {
 };
 
 export const addText = function (ctx, text) {
-  if (!text) {
+  if (!text.body) {
     return;
   }
-  const { body, color, size, x, y } = text;
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillStyle = color;
+  const { body, color, size, x, y, textAlign, textBaseline } = text;
+  ctx.textAlign = textAlign || "center";
+  ctx.textBaseline = textBaseline || "middle";
+  ctx.fillStyle = color || "black";
   ctx.font = `${size}px Arial`;
   ctx.fillText(body, x, y);
 };

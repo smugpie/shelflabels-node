@@ -22,13 +22,10 @@ async function setupCharacteristics(peripheral) {
       ["fef0"],
       ["fef2", "fef1"]
     );
-  console.log("Servicea and characteristics found");
+  console.log("Services and characteristics found");
   commandCharacteristic = characteristics[0];
   commandCharacteristic.subscribe();
   commandCharacteristic.on("data", handleNotify);
-  commandCharacteristic.on("error", (err) => {
-    console.log("Error in command characteristic:", err);
-  });
   imageCharacteristic = characteristics[1];
 }
 
