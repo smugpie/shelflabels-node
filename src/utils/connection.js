@@ -1,10 +1,9 @@
+import noble from "@abandonware/noble";
+
 import { bytesToHex } from "./conversion.js";
 import { handleImageRequest } from "./commands.js";
-import { createNewCanvas, decorateCanvas } from "./drawing.js";
 import { getPixelDataFromCanvas } from "./pixels.js";
 import { sendImage } from "./commands.js";
-
-import noble from "@abandonware/noble";
 
 var bleDevice;
 export var commandCharacteristic = null;
@@ -33,20 +32,13 @@ async function setupCharacteristics(peripheral) {
   imageCharacteristic = characteristics[1];
 }
 
-async function prepareAndSendImage() {
-  const ctx = createNewCanvas();
-  await decorateCanvas(ctx);
-  const pixelData = getPixelDataFromCanvas(ctx);
-  await sendImage(pixelData);
-}
-
 export async function disconnect() {
   await commandCharacteristic.unsubscribe();
   await bleDevice.disconnectAsync();
   process.exit(0);
 }
 
-export const connect = function () {
+export const connect = function (canvasInstructions) {
   noble.on("stateChange", async (state) => {
     if (state === "poweredOn") {
       console.log("BLE powered on, starting scan...");
@@ -69,7 +61,9 @@ export const connect = function () {
         bleDevice = peripheral;
         await peripheral.connectAsync();
         await setupCharacteristics(peripheral);
-        await prepareAndSendImage();
+        const ctx = await canvasInstructions();
+        const pixelData = getPixelDataFromCanvas(ctx);
+        await sendImage(pixelData);
       }
     } catch (err) {
       console.log("Error:", err);

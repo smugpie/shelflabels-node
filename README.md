@@ -4,8 +4,8 @@
 
 This is a Node.js script that uploads images to PickSmart/GiCiSky Bluetooth-only Electronic Shelf Labels (ESLs).
 
-This is a complete proof of concept so it may work for you, it might not. Just supplying this to get you going on your journey. It is nowhere near a complete solution. At the moment it uploads an image some text to an ESL but you could use it to develop your own stuff -
-fetch a weather forecast, show your step count even!
+This is a complete proof of concept so it may work for you, it might not. Just supplying this to get you going on your journey. It is nowhere near a complete solution. At the moment it uploads an image and some text to an ESL but you could use it to develop your own stuff -
+fetch a weather forecast, even show your step count!
 
 It is heavily based on the [sterling work done by atc1441](https://github.com/atc1441/ATC_GICISKY_ESL) so I can't
 claim much credit for it, beyond getting it to work with Node.
@@ -36,14 +36,20 @@ npm install
 
 Change the settings in `src/config,js` to match your device.
 
-Change the image in `images` to one you actually want on your device.
+Then assemble your own canvas at `prepareAndSendImage()`:
 
-Add and remove text by changing the `addText()` lines in `src/drawing.js`.
-
-Then:
+For text and images, here is an example:
 
 ```sh
-DEVICE_NAME=<your_device_name> node src/index.js
+DEVICE_NAME=<your_device_name> node src/sendTextAndImage.js
 ```
+
+For text only, you can use this:
+
+```sh
+DEVICE_NAME=<your_device_name> node src/sendTextAndImage.js
+```
+
+I might add more examples to get data from third party services if I'm feeling generous.
 
 The `DEVICE_NAME` will be something like `PICKSMART` or `NEMR<bunch of numbers>` so look out for those when you're performing the scan.
