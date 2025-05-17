@@ -4,7 +4,6 @@ import { bytesToHex } from "./conversion.js";
 import { handleImageRequest } from "./commands.js";
 import { getPixelDataFromCanvas } from "./pixels.js";
 import { sendImage } from "./commands.js";
-import delayPromise from "./delayPromise.js";
 
 var bleDevice;
 export var commandCharacteristic = null;
