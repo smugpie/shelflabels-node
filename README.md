@@ -21,13 +21,13 @@ It is very much a proof of concept and no warranty is provided, so use it at you
 
 Tested with Node v22 on an M1 Mac. If you have `nvm` installed:
 
-```
+```sh
 nvm use
 ```
 
 Then:
 
-```
+```sh
 npm install
 ```
 
@@ -39,8 +39,10 @@ Add and remove text by changing the `addText()` lines in `src/drawing.js`.
 
 Then:
 
-```
+```sh
 DEVICE_NAME=<your_device_name> node src/index.js
 ```
+
+The `DEVICE_NAME` will be something like `PICKSMART` or `NEMR<bunch of numbers>` so look out for those when you're performing the scan.
 
 As I say, this is a complete proof of concept so it may work for you, it might not. Just supplying this to get you going on your journey. It is nowhere near a complete solution. Bye!
