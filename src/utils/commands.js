@@ -1,7 +1,7 @@
 import {
   commandCharacteristic,
+  disconnect,
   imageCharacteristic,
-  reconnect,
 } from "./connection.js";
 import delayPromise from "./delayPromise.js";
 import { hexToBytes, intToHex } from "./conversion.js";
@@ -27,13 +27,15 @@ export function sendImage(pixelData) {
 export async function sendCommandAsBytes(cmd, characteristic) {
   if (characteristic) {
     try {
-      await characteristic.writeValue(cmd);
-    } catch {
+      await characteristic.write(cmd, false);
+      console.log("Command sent: " + cmd);
+    } catch (e) {
+      console.log("Error sending command: " + e);
       console.log("DOMException: GATT operation already in progress.");
       return Promise.resolve()
         .then(() => delayPromise(500))
-        .then(() => {
-          characteristic.writeValue(cmd);
+        .then(async () => {
+          await characteristic.write(cmd, false);
         });
     }
   }
@@ -42,7 +44,7 @@ export async function sendCommandAsBytes(cmd, characteristic) {
 export function handleImageRequest(data) {
   const imagePartMessageSize = new DataView(hexToBytes(data).buffer).getUint16(
     1,
-    true,
+    true
   );
 
   switch (data.substring(0, 2)) {
@@ -50,7 +52,7 @@ export function handleImageRequest(data) {
       // Read image part message size from response bytes 2 & 3 as uint16le
       // Typically, this will be 0xf400 = 244d
       console.log(
-        `Display requested image part message size ${imagePartMessageSize}`,
+        `Display requested image part message size ${imagePartMessageSize}`
       );
 
       // Image part size will be four bytes less than the message size
@@ -67,8 +69,8 @@ export function handleImageRequest(data) {
 
     case "05":
       if (data.substring(2, 4) === "08") {
-        console.log("Image upload done, refreshing and reconecting now");
-        reconnect(5000);
+        console.log("Image upload done, disconnecting now");
+        disconnect();
       } else if (data.substring(2, 4) !== "00") {
         console.log("Something wrong in the upload flow, aborting!!!");
       } else {
@@ -83,7 +85,7 @@ function sendImagePortion(partAcked) {
   if (imgArray.length > 0) {
     let currentpart = oldPart;
     console.log(
-      "PartACK: " + partAcked + " PartUpload: " + intToHex(uploadPart),
+      "PartACK: " + partAcked + " PartUpload: " + intToHex(uploadPart)
     );
     if (partAcked == intToHex(uploadPart)) {
       currentpart =
@@ -98,6 +100,6 @@ function sendImagePortion(partAcked) {
     console.log("Curr Part: " + currentpart);
     sendCommandAsBytes(hexToBytes(currentpart), imageCharacteristic);
   } else {
-    console.log("Img upload done");
+    console.log("Image upload done");
   }
 }

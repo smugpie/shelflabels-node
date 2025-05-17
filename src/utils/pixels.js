@@ -1,16 +1,16 @@
-import { buf2hex } from "./conversion";
+import { buf2hex } from "./conversion.js";
+import { createCanvas } from "canvas";
+import { config } from "../config.js";
 
-export function getPixelDataFromCanvas(canvas, options) {
-  const { isRotated, hasCompression, hasSecondColor, isMirrored } = options;
+export function getPixelDataFromCanvas(ctx) {
+  const { canvas } = ctx;
+  const { isRotated, hasCompression, hasSecondColor, isMirrored } = config;
 
-  var ctx = canvas.getContext("2d");
   var imageData;
 
   if (isRotated) {
-    var tempCanvas = document.createElement("canvas");
+    var tempCanvas = createCanvas(canvas.height, canvas.width);
     var tempCtx = tempCanvas.getContext("2d");
-    tempCanvas.width = canvas.height;
-    tempCanvas.height = canvas.width;
 
     tempCtx.translate(tempCanvas.width / 2, tempCanvas.height / 2);
     tempCtx.rotate(-Math.PI / 2);
@@ -21,7 +21,7 @@ export function getPixelDataFromCanvas(canvas, options) {
     imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
   } else {
     if (isMirrored) {
-      var tempCanvas = document.createElement("canvas");
+      var tempCanvas = createCanvas(canvas.width, canvas.height);
       var tempCtx = tempCanvas.getContext("2d");
       tempCanvas.width = canvas.width;
       tempCanvas.height = canvas.height;
