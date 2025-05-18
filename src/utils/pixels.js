@@ -1,4 +1,3 @@
-import { buf2hex } from "./conversion.js";
 import { createCanvas } from "canvas";
 import { config } from "../config.js";
 
@@ -123,5 +122,5 @@ export function getPixelDataFromCanvas(ctx) {
     }
   }
 
-  return buf2hex(byteDataCompressed);
+  return Buffer.from(byteDataCompressed).toString("hex");
 }

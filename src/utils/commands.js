@@ -24,17 +24,17 @@ export async function sendCommand(
   command,
   characteristic = commandCharacteristic
 ) {
-  const commandAsBytes = hexToBytes(command);
-  console.log("Sending command: " + commandAsBytes);
+  const commandAsBuffer = Buffer.from(command, "hex");
+  console.log("Sending command: " + command);
   if (characteristic) {
     try {
-      await characteristic.write(commandAsBytes, false);
+      await characteristic.write(commandAsBuffer, false);
     } catch (e) {
       console.log("Error sending command: " + e);
       return Promise.resolve()
         .then(() => delayPromise(500))
         .then(async () => {
-          await characteristic.write(commandAsBytes, false);
+          await characteristic.write(commandAsBuffer, false);
         });
     }
   }
