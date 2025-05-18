@@ -2,7 +2,6 @@ import noble from "@abandonware/noble";
 
 import { bytesToHex } from "./conversion.js";
 import { handleImageRequest } from "./commands.js";
-import { getPixelDataFromCanvas } from "./pixels.js";
 import { sendImage } from "./commands.js";
 
 var bleDevice;
@@ -63,11 +62,10 @@ export const connectAndSendImage = function (ctx) {
         await peripheral.connectAsync();
         await setupCharacteristics(peripheral);
 
-        const pixelData = await getPixelDataFromCanvas(ctx);
         // TODO wait for an event to send the image
         // instead of an arbitrary timeout
         setTimeout(() => {
-          sendImage(pixelData);
+          sendImage(ctx);
         }, 3000);
       }
     } catch (err) {

@@ -5,35 +5,36 @@ import {
 } from "./connection.js";
 import delayPromise from "./delayPromise.js";
 import { hexToBytes, intToHex } from "./conversion.js";
+import { getPixelDataFromCanvas } from "./pixels.js";
 
 let imgArray = "";
 let uploadPart = 0;
 let oldPart = "";
 let imagePartSize;
 
-export async function sendCommand(cmdTXT) {
-  let cmd = hexToBytes(cmdTXT);
-  console.log("Sending command: " + cmdTXT);
-  await sendCommandAsBytes(cmd, commandCharacteristic);
-}
-
-export async function sendImage(pixelData) {
+export async function sendImage(ctx) {
+  const pixelData = await getPixelDataFromCanvas(ctx);
   imgArray = pixelData.replace(/(?:\r\n|\r|\n|,|0x| )/g, "");
   uploadPart = 0;
   console.log("Sending image...");
   await sendCommand("01");
 }
 
-export async function sendCommandAsBytes(cmd, characteristic) {
+export async function sendCommand(
+  command,
+  characteristic = commandCharacteristic
+) {
+  const commandAsBytes = hexToBytes(command);
+  console.log("Sending command: " + commandAsBytes);
   if (characteristic) {
     try {
-      await characteristic.write(cmd, false);
+      await characteristic.write(commandAsBytes, false);
     } catch (e) {
       console.log("Error sending command: " + e);
       return Promise.resolve()
         .then(() => delayPromise(500))
         .then(async () => {
-          await characteristic.write(cmd, false);
+          await characteristic.write(commandAsBytes, false);
         });
     }
   }
@@ -82,9 +83,6 @@ export function handleImageRequest(data) {
 function sendImagePortion(partAcked) {
   if (imgArray.length > 0) {
     let currentpart = oldPart;
-    console.log(
-      "PartACK: " + partAcked + " PartUpload: " + intToHex(uploadPart)
-    );
     if (partAcked == intToHex(uploadPart)) {
       currentpart =
         intToHex(uploadPart) + imgArray.substring(0, imagePartSize * 2);
@@ -95,8 +93,7 @@ function sendImagePortion(partAcked) {
     } else {
       console.log("Resending last part because of error");
     }
-    console.log("Curr Part: " + currentpart);
-    sendCommandAsBytes(hexToBytes(currentpart), imageCharacteristic);
+    sendCommand(currentpart, imageCharacteristic);
   } else {
     console.log("Image upload done");
   }
