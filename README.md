@@ -38,16 +38,16 @@ Change the settings in `src/config,js` to match your device.
 
 Then assemble your own canvas at `prepareAndSendImage()`:
 
-For text and images, here is an example:
+For images, here is an example:
 
 ```sh
-DEVICE_NAME=<your_device_name> node src/sendTextAndImage.js
+DEVICE_NAME=<your_device_name> node src/sendImage.js
 ```
 
 For text only, you can use this:
 
 ```sh
-DEVICE_NAME=<your_device_name> node src/sendTextAndImage.js
+DEVICE_NAME=<your_device_name> node src/sendTexr.js
 ```
 
 To retrieve data from an API and display it, you can use this example which displays the current temperature:

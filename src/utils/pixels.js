@@ -7,10 +7,14 @@ export function getPixelDataFromCanvas(ctx) {
   const { isRotated, hasCompression, hasSecondColor, isMirrored } = config;
 
   var imageData;
+  var tempCanvas;
+  var tempCtx;
+  var i;
+  var byte;
 
   if (isRotated) {
-    var tempCanvas = createCanvas(canvas.height, canvas.width);
-    var tempCtx = tempCanvas.getContext("2d");
+    tempCanvas = createCanvas(canvas.height, canvas.width);
+    tempCtx = tempCanvas.getContext("2d");
 
     tempCtx.translate(tempCanvas.width / 2, tempCanvas.height / 2);
     tempCtx.rotate(-Math.PI / 2);
@@ -21,8 +25,8 @@ export function getPixelDataFromCanvas(ctx) {
     imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
   } else {
     if (isMirrored) {
-      var tempCanvas = createCanvas(canvas.width, canvas.height);
-      var tempCtx = tempCanvas.getContext("2d");
+      tempCanvas = createCanvas(canvas.width, canvas.height);
+      tempCtx = tempCanvas.getContext("2d");
       tempCanvas.width = canvas.width;
       tempCanvas.height = canvas.height;
 
@@ -42,7 +46,7 @@ export function getPixelDataFromCanvas(ctx) {
   var currentByteRed = 0;
   var bitPosition = 7;
 
-  for (var i = 0; i < canvas.width; i++) {
+  for (i = 0; i < canvas.width; i++) {
     for (var x = 0; x < canvas.height; x++) {
       var curr = (i * canvas.height + x) * 4;
       var r = pixels[curr];
@@ -80,7 +84,7 @@ export function getPixelDataFromCanvas(ctx) {
     byteDataCompressed.push(0x00);
     byteDataCompressed.push(0x00);
     byteDataCompressed.push(0x00);
-    for (var i = 0; i < canvas.width; i += 1) {
+    for (i = 0; i < canvas.width; i += 1) {
       byteDataCompressed.push(0x75);
       byteDataCompressed.push(byte_per_line + 7);
       byteDataCompressed.push(byte_per_line);
@@ -88,12 +92,12 @@ export function getPixelDataFromCanvas(ctx) {
       byteDataCompressed.push(0x00);
       byteDataCompressed.push(0x00);
       byteDataCompressed.push(0x00);
-      for (var b = 0; b < byte_per_line; b++) {
+      for (byte = 0; byte < byte_per_line; byte++) {
         byteDataCompressed.push(byteData[currentPosi++]);
       }
     }
     if (hasSecondColor) {
-      for (var i = 0; i < canvas.width; i += 1) {
+      for (i = 0; i < canvas.width; i += 1) {
         byteDataCompressed.push(0x75);
         byteDataCompressed.push(byte_per_line + 7);
         byteDataCompressed.push(byte_per_line);
@@ -101,7 +105,7 @@ export function getPixelDataFromCanvas(ctx) {
         byteDataCompressed.push(0x00);
         byteDataCompressed.push(0x00);
         byteDataCompressed.push(0x00);
-        for (var b = 0; b < byte_per_line; b++) {
+        for (byte = 0; byte < byte_per_line; byte++) {
           byteDataCompressed.push(byteData[currentPosi++]);
         }
       }
@@ -111,8 +115,8 @@ export function getPixelDataFromCanvas(ctx) {
     byteDataCompressed[2] = (byteDataCompressed.length >> 16) & 0xff;
     byteDataCompressed[3] = (byteDataCompressed.length >> 24) & 0xff;
   } else {
-    for (var b = 0; b < byteData.length; b++) {
-      byteDataCompressed.push(byteData[b]);
+    for (byte = 0; byte < byteData.length; byte++) {
+      byteDataCompressed.push(byteData[byte]);
     }
     if (hasSecondColor) {
       byteDataCompressed = [...byteDataCompressed, ...byteDataRed];

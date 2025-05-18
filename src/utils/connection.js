@@ -10,8 +10,7 @@ export var commandCharacteristic = null;
 export var imageCharacteristic = null;
 
 export function handleNotify(data) {
-  console.log("Notification received");
-  console.log("Got bytes: " + bytesToHex(data.buffer));
+  console.log("Received bytes: " + bytesToHex(data.buffer));
   setTimeout(function () {
     handleImageRequest(bytesToHex(data.buffer));
   }, 50);
@@ -25,7 +24,8 @@ async function setupCharacteristics(peripheral) {
     );
   commandCharacteristic = characteristics.find((c) => c.uuid === "fef1");
   imageCharacteristic = characteristics.find((c) => c.uuid === "fef2");
-  console.log("Services and characteristics found");
+  console.log("Services and characteristics found...");
+
   await commandCharacteristic.subscribe();
   commandCharacteristic.on("data", handleNotify);
   commandCharacteristic.on("error", (e) => {
@@ -57,7 +57,7 @@ export const connectAndSendImage = function (ctx) {
         process.env.DEVICE_NAME &&
         process.env.DEVICE_NAME === peripheral.advertisement.localName
       ) {
-        console.log("Found tag, stopping scan...");
+        console.log("Found tag...");
         await noble.stopScanningAsync();
         bleDevice = peripheral;
         await peripheral.connectAsync();
@@ -72,8 +72,7 @@ export const connectAndSendImage = function (ctx) {
       }
     } catch (err) {
       console.log("Error:", err);
-      await peripheral.disconnectAsync();
-      process.exit(0);
+      await disconnect();
     }
   });
 };
