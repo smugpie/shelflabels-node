@@ -6,13 +6,12 @@ export function hexToBytes(hex) {
 
 export function bytesToHex(data) {
   return new Uint8Array(data).reduce(function (memo, i) {
-    return memo + ("0" + i.toString(16)).slice(-2);
+    return memo + i.toString(16).padStart(2, "0");
   }, "");
 }
 
 export function intToHex(intIn) {
-  var stringOut = "";
-  stringOut = ("00000000" + intIn.toString(16)).substr(-8);
+  var stringOut = intIn.toString(16).padStart(8, "0");
   return (
     stringOut.substring(6, 8) +
     stringOut.substring(4, 6) +
