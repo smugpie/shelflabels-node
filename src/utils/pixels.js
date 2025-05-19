@@ -1,53 +1,54 @@
 import { createCanvas } from "canvas";
 import { config } from "../config.js";
 
-export function getPixelDataFromCanvas(ctx) {
-  const { canvas } = ctx;
-  const { isRotated, hasCompression, hasSecondColor, isMirrored } = config;
+function orientContext(ctx) {
+  const { isMirrored, isRotated } = config;
 
-  var imageData;
-  var tempCanvas;
-  var tempCtx;
-  var i;
-  var byte;
+  if (!isRotated && !isMirrored) {
+    return ctx;
+  }
+
+  const { canvas } = ctx;
+
+  var tempCanvas = createCanvas(
+    isRotated ? canvas.height : canvas.width,
+    isRotated ? canvas.width : canvas.height
+  );
+  var tempCtx = tempCanvas.getContext("2d");
 
   if (isRotated) {
-    tempCanvas = createCanvas(canvas.height, canvas.width);
-    tempCtx = tempCanvas.getContext("2d");
-
     tempCtx.translate(tempCanvas.width / 2, tempCanvas.height / 2);
     tempCtx.rotate(-Math.PI / 2);
     if (isMirrored) {
       tempCtx.scale(-1, 1);
     }
     tempCtx.drawImage(canvas, -canvas.width / 2, -canvas.height / 2);
-    imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
-  } else {
-    if (isMirrored) {
-      tempCanvas = createCanvas(canvas.width, canvas.height);
-      tempCtx = tempCanvas.getContext("2d");
-      tempCanvas.width = canvas.width;
-      tempCanvas.height = canvas.height;
-
-      tempCtx.translate(canvas.width, 0);
-      tempCtx.scale(-1, 1);
-      tempCtx.drawImage(canvas, 0, 0, canvas.width, canvas.height);
-      imageData = tempCtx.getImageData(0, 0, canvas.width, canvas.height);
-    } else {
-      imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    }
+    return tempCtx;
   }
 
-  var pixels = imageData.data;
-  var byteData = [];
+  if (isMirrored) {
+    tempCtx.translate(canvas.width, 0);
+    tempCtx.scale(-1, 1);
+    tempCtx.drawImage(canvas, 0, 0, canvas.width, canvas.height);
+    return tempCtx;
+  }
+
+  return ctx;
+}
+
+export function getColorData(ctx, width, height) {
+  const { canvas } = ctx;
+  const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+
+  var byteDataBlack = [];
   var byteDataRed = [];
   var currentByte = 0;
   var currentByteRed = 0;
   var bitPosition = 7;
 
-  for (i = 0; i < canvas.width; i++) {
-    for (var x = 0; x < canvas.height; x++) {
-      var curr = (i * canvas.height + x) * 4;
+  for (var x = 0; x < width; x++) {
+    for (var y = 0; y < height; y++) {
+      var curr = (x * height + y) * 4;
       var r = pixels[curr];
       var g = pixels[curr + 1];
       var b = pixels[curr + 2];
@@ -60,7 +61,7 @@ export function getPixelDataFromCanvas(ctx) {
       }
       bitPosition--;
       if (bitPosition < 0) {
-        byteData.push(currentByte);
+        byteDataBlack.push(currentByte);
         byteDataRed.push(currentByteRed);
         currentByte = 0;
         currentByteRed = 0;
@@ -70,57 +71,75 @@ export function getPixelDataFromCanvas(ctx) {
   }
 
   if (bitPosition !== 7) {
-    byteData.push(currentByte);
+    byteDataBlack.push(currentByte);
     byteDataRed.push(currentByteRed);
+  }
+
+  return {
+    byteDataBlack,
+    byteDataRed,
+  };
+}
+
+export function getPixelDataFromCanvas(ctx) {
+  const { canvas } = ctx;
+  const { hasCompression, hasSecondColor } = config;
+
+  var x;
+  var byte;
+
+  const orientedCtx = orientContext(ctx);
+  const { byteDataBlack, byteDataRed } = getColorData(
+    orientedCtx,
+    canvas.width,
+    canvas.height
+  );
+
+  if (!hasCompression) {
+    return hasSecondColor
+      ? Buffer.from([...byteDataBlack, ...byteDataRed]).toString("hex")
+      : Buffer.from(byteDataBlack).toString("hex");
   }
 
   var byteDataCompressed = [];
 
-  if (hasCompression) {
-    var currentPosi = 0;
-    var byte_per_line = canvas.height / 8;
+  var currentPos = 0;
+  const bytesPerLine = canvas.height / 8;
+  byteDataCompressed.push(0x00);
+  byteDataCompressed.push(0x00);
+  byteDataCompressed.push(0x00);
+  byteDataCompressed.push(0x00);
+  for (x = 0; x < canvas.width; x += 1) {
+    byteDataCompressed.push(0x75);
+    byteDataCompressed.push(bytesPerLine + 7);
+    byteDataCompressed.push(bytesPerLine);
     byteDataCompressed.push(0x00);
     byteDataCompressed.push(0x00);
     byteDataCompressed.push(0x00);
     byteDataCompressed.push(0x00);
-    for (i = 0; i < canvas.width; i += 1) {
-      byteDataCompressed.push(0x75);
-      byteDataCompressed.push(byte_per_line + 7);
-      byteDataCompressed.push(byte_per_line);
-      byteDataCompressed.push(0x00);
-      byteDataCompressed.push(0x00);
-      byteDataCompressed.push(0x00);
-      byteDataCompressed.push(0x00);
-      for (byte = 0; byte < byte_per_line; byte++) {
-        byteDataCompressed.push(byteData[currentPosi++]);
-      }
-    }
-    if (hasSecondColor) {
-      for (i = 0; i < canvas.width; i += 1) {
-        byteDataCompressed.push(0x75);
-        byteDataCompressed.push(byte_per_line + 7);
-        byteDataCompressed.push(byte_per_line);
-        byteDataCompressed.push(0x00);
-        byteDataCompressed.push(0x00);
-        byteDataCompressed.push(0x00);
-        byteDataCompressed.push(0x00);
-        for (byte = 0; byte < byte_per_line; byte++) {
-          byteDataCompressed.push(byteData[currentPosi++]);
-        }
-      }
-    }
-    byteDataCompressed[0] = byteDataCompressed.length & 0xff;
-    byteDataCompressed[1] = (byteDataCompressed.length >> 8) & 0xff;
-    byteDataCompressed[2] = (byteDataCompressed.length >> 16) & 0xff;
-    byteDataCompressed[3] = (byteDataCompressed.length >> 24) & 0xff;
-  } else {
-    for (byte = 0; byte < byteData.length; byte++) {
-      byteDataCompressed.push(byteData[byte]);
-    }
-    if (hasSecondColor) {
-      byteDataCompressed = [...byteDataCompressed, ...byteDataRed];
+    for (byte = 0; byte < bytesPerLine; byte++) {
+      byteDataCompressed.push(byteDataBlack[currentPos++]);
     }
   }
+
+  if (hasSecondColor) {
+    for (x = 0; x < canvas.width; x += 1) {
+      byteDataCompressed.push(0x75);
+      byteDataCompressed.push(bytesPerLine + 7);
+      byteDataCompressed.push(bytesPerLine);
+      byteDataCompressed.push(0x00);
+      byteDataCompressed.push(0x00);
+      byteDataCompressed.push(0x00);
+      byteDataCompressed.push(0x00);
+      for (byte = 0; byte < bytesPerLine; byte++) {
+        byteDataCompressed.push(byteDataBlack[currentPos++]);
+      }
+    }
+  }
+  byteDataCompressed[0] = byteDataCompressed.length & 0xff;
+  byteDataCompressed[1] = (byteDataCompressed.length >> 8) & 0xff;
+  byteDataCompressed[2] = (byteDataCompressed.length >> 16) & 0xff;
+  byteDataCompressed[3] = (byteDataCompressed.length >> 24) & 0xff;
 
   return Buffer.from(byteDataCompressed).toString("hex");
 }
