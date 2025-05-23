@@ -36,7 +36,7 @@ npm install
 
 Change the settings in `src/config,js` to match your device.
 
-Then assemble your own canvas at `prepareAndSendImage()`:
+Then assemble your own canvas at `prepareImage()`:
 
 For images, here is an example:
 
@@ -61,3 +61,7 @@ DEVICE_NAME=<your_device_name> node src/sendWeather.js
 I might add more examples to get data from third party services if I'm feeling generous.
 
 The `DEVICE_NAME` will be something like `PICKSMART` or `NEMR<bunch of numbers>` so look out for those when you're performing the scan.
+
+This code is tested with a Picksmart 2.9" BWR device. This
+device doesn't appear to use compression so the code for
+sending compressed images is totally untested, so use that at your own risk.
