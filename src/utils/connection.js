@@ -1,8 +1,9 @@
 import noble from "@abandonware/noble";
 
-import { bytesToHex } from "./conversion.js";
+import { hexToBytes, bytesToHex } from "./conversion.js";
 import { handleImageRequest } from "./commands.js";
 import { sendImage } from "./commands.js";
+import { getDeviceInfo } from "./deviceInfo.js";
 
 var bleDevice;
 export var commandCharacteristic = null;
@@ -16,6 +17,23 @@ export function handleNotify(data) {
 }
 
 async function setupCharacteristics(peripheral) {
+  const mfrData = hexToBytes(
+    peripheral.advertisement.manufacturerData.toString("hex")
+  );
+
+  const deviceInfo = getDeviceInfo(mfrData);
+
+  // at the moment this information is only retrieved to
+  // display the device info - we could use it to
+  // set the config object and alter the canvas size
+  // and rotation settings
+
+  console.log(`Voltage: ${deviceInfo.voltage}V`);
+  console.log(
+    `Screen size: ${deviceInfo.screenSize.width}x${deviceInfo.screenSize.height}`
+  );
+  console.log(`Colors: ${deviceInfo.colors.join(", ")}`);
+
   const { characteristics } =
     await peripheral.discoverSomeServicesAndCharacteristicsAsync(
       ["fef0"],

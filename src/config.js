@@ -13,3 +13,11 @@ export const weatherConfig = {
   lat: 54.5234,
   lon: -6.0353,
 };
+
+export function updateConfig(deviceInfo) {
+  const { screenSize, colors } = deviceInfo;
+  config.width = screenSize.width;
+  config.height = screenSize.height;
+  config.isRotated = screenSize.isRotated;
+  config.hasSecondColor = colors.length > 1;
+}
